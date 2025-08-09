@@ -35,12 +35,39 @@ const uniqueBySrc = (items) => {
 };
 const mediaItems = uniqueBySrc(galleryItems);
 
-/* Render gallery */
+/* Render gallery with skeletons, IntersectionObserver lazy load, and fade-in */
 const grid = select('#gallery-grid');
 const fragment = document.createDocumentFragment();
+
+// Prepare observer for lazy loading
+const lazyObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (!entry.isIntersecting) return;
+    const tile = entry.target;
+    const media = tile.querySelector('img,video');
+    if (!media) return;
+
+    // Set fetch priority for first rows
+    const tileIndex = Number(tile.getAttribute('data-index')) || 0;
+    if (media.tagName === 'IMG') {
+      if (tileIndex < 6) media.setAttribute('fetchpriority', 'high');
+      else media.setAttribute('fetchpriority', 'low');
+      media.src = media.dataset.src;
+    } else {
+      media.preload = 'metadata';
+      media.src = media.dataset.src;
+    }
+
+    // Unobserve once we start loading
+    lazyObserver.unobserve(tile);
+  });
+}, { rootMargin: '300px 0px' });
+
+let firstPaintTimeout = null;
+
 mediaItems.forEach((item, index) => {
   const tile = document.createElement('figure');
-  tile.className = 'tile';
+  tile.className = 'tile is-loading';
   tile.setAttribute('data-index', String(index));
 
   const button = document.createElement('button');
@@ -49,16 +76,25 @@ mediaItems.forEach((item, index) => {
   if (item.type === 'image') {
     const img = document.createElement('img');
     img.loading = 'lazy';
-    img.src = item.src;
+    img.decoding = 'async';
+    img.dataset.src = item.src; // set later via observer
     img.alt = item.alt;
+    img.addEventListener('load', () => {
+      tile.classList.remove('is-loading');
+      tile.classList.add('is-ready');
+    });
     button.appendChild(img);
   } else {
     const video = document.createElement('video');
     video.muted = true;
     video.playsInline = true;
-    video.autoplay = true;
+    video.autoplay = false; // load on demand only
     video.loop = true;
-    video.src = item.src;
+    video.dataset.src = item.src; // set later via observer
+    video.addEventListener('loadeddata', () => {
+      tile.classList.remove('is-loading');
+      tile.classList.add('is-ready');
+    });
     button.appendChild(video);
 
     const badge = document.createElement('span');
@@ -73,8 +109,17 @@ mediaItems.forEach((item, index) => {
 
   tile.appendChild(button);
   fragment.appendChild(tile);
+
+  // Observe for lazy loading
+  lazyObserver.observe(tile);
 });
 grid.appendChild(fragment);
+
+// Reveal grid quickly so skeletons show immediately (avoid white page)
+firstPaintTimeout = setTimeout(() => {
+  grid.classList.add('ready');
+  clearTimeout(firstPaintTimeout);
+}, 150);
 
 /* Lightbox */
 const lightbox = select('#lightbox');
