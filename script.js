@@ -5,8 +5,20 @@ const selectAll = (selector, scope = document) => Array.from(scope.querySelector
 /* Current year */
 select('#year').textContent = new Date().getFullYear();
 
-/* Gallery data: use each media file exactly once */
-const galleryItems = [
+/* Gallery data and ordering: list all media once; newest first automatically */
+// Put any newly added filenames here to force them to the very top
+const NEW_MEDIA_FIRST = [
+  'IMG-20250809-WA0059.jpg',
+  'IMG-20250809-WA0058.jpg',
+  'IMG-20250809-WA0057.jpg',
+  'IMG-20250809-WA0056.jpg',
+  'IMG-20250809-WA0055.jpg',
+  'IMG-20250809-WA0054.jpg',
+  'IMG-20250809-WA0053.jpg'
+];
+
+// Base media list (existing files in the project)
+const BASE_MEDIA = [
   // Images
   'IMG-20250809-WA0007.jpg','IMG-20250809-WA0008.jpg','IMG-20250809-WA0009.jpg','IMG-20250809-WA0010.jpg',
   'IMG-20250809-WA0011.jpg','IMG-20250809-WA0012.jpg','IMG-20250809-WA0013.jpg','IMG-20250809-WA0014.jpg',
@@ -18,22 +30,32 @@ const galleryItems = [
   'IMG-20250809-WA0035.jpg','IMG-20250809-WA0036.jpg','IMG-20250809-WA0037.jpg','IMG-20250809-WA0038.jpg',
   // Videos
   'VID-20250809-WA0003.mp4','VID-20250809-WA0004.mp4','VID-20250809-WA0005.mp4'
-].map(path => ({
+];
+
+// Combine and de-duplicate maintaining order (NEW_MEDIA_FIRST first)
+const combinedNames = [...NEW_MEDIA_FIRST, ...BASE_MEDIA];
+const uniqueNames = Array.from(new Set(combinedNames));
+
+let mediaItems = uniqueNames.map(path => ({
   type: path.toLowerCase().endsWith('.mp4') ? 'video' : 'image',
   src: path,
   alt: path.replace(/[-_]/g, ' ').replace(/\.\w+$/, '')
 }));
 
-/* Deduplicate just in case (do not replicate any image) */
-const uniqueBySrc = (items) => {
-  const seen = new Set();
-  return items.filter(item => {
-    if (seen.has(item.src)) return false;
-    seen.add(item.src);
-    return true;
-  });
-};
-const mediaItems = uniqueBySrc(galleryItems);
+// Sort so NEW_MEDIA_FIRST stay on top, then by inferred numeric order (higher comes first)
+const prioritySet = new Set(NEW_MEDIA_FIRST);
+function extractNumericOrder(src) {
+  const wa = src.match(/WA(\d+)/i);
+  if (wa) return Number(wa[1]);
+  const nums = src.match(/(\d+)/g);
+  return nums ? Number(nums[nums.length - 1]) : -Infinity;
+}
+mediaItems.sort((a, b) => {
+  const ap = prioritySet.has(a.src) ? 1 : 0;
+  const bp = prioritySet.has(b.src) ? 1 : 0;
+  if (ap !== bp) return bp - ap; // prioritize items in NEW_MEDIA_FIRST
+  return extractNumericOrder(b.src) - extractNumericOrder(a.src);
+});
 
 /* Render gallery with skeletons, IntersectionObserver lazy load, and fade-in */
 const grid = select('#gallery-grid');
