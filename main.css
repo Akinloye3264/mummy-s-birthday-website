@@ -155,4 +155,8 @@ body {
 ::selection { background: rgba(255,106,160,0.35); }
 a { color: inherit; }
 
+.section-title{
+  text-align: center;
+}
+
 
