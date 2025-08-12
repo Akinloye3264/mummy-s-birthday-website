@@ -8,13 +8,36 @@ select('#year').textContent = new Date().getFullYear();
 /* Gallery data and ordering: list all media once; newest first automatically */
 // Put any newly added filenames here to force them to the very top
 const NEW_MEDIA_FIRST = [
-  'IMG-20250809-WA0059.jpg',
+  // Newly added custom photos (shown first, in this exact order)
   'IMG-20250809-WA0058.jpg',
-  'IMG-20250809-WA0057.jpg',
   'IMG-20250809-WA0056.jpg',
+  'IMG-20250809-WA0059.jpg',
+  'malle.jpg',
+  'mum and abbey.jpg',
+  'mum nd tiwa.jpg',
+  'mum nd tiwa2.jpg',
+  'mum1.jpg',
+  'IMG-20250809-WA0047.jpg',
+  'IMG-20250809-WA0046.jpg',
+  'IMG-20250809-WA0045.jpg',
+  'IMG-20250809-WA0044.jpg',
+  'IMG-20250809-WA0043.jpg',
+  'IMG-20250809-WA0042.jpg',
+  'IMG-20250809-WA0041.jpg',
+  'mum2.jpg',
+  'mum3.jpg',
+  'mum4.jpg',
+  'tinu.jpg',
+  'tinu2.jpg',
+  'IMG-20250809-WA0057.jpg',
   'IMG-20250809-WA0055.jpg',
   'IMG-20250809-WA0054.jpg',
-  'IMG-20250809-WA0053.jpg'
+  'IMG-20250809-WA0053.jpg',
+  'IMG-20250809-WA0052.jpg',
+  'IMG-20250809-WA0051.jpg',
+  'IMG-20250809-WA0050.jpg',
+  'IMG-20250809-WA0049.jpg',
+  'IMG-20250809-WA0048.jpg',
 ];
 
 // Base media list (existing files in the project)
@@ -42,7 +65,7 @@ let mediaItems = uniqueNames.map(path => ({
   alt: path.replace(/[-_]/g, ' ').replace(/\.\w+$/, '')
 }));
 
-// Sort so NEW_MEDIA_FIRST stay on top, then by inferred numeric order (higher comes first)
+// Mix new images throughout the gallery instead of placing them first
 const prioritySet = new Set(NEW_MEDIA_FIRST);
 function extractNumericOrder(src) {
   const wa = src.match(/WA(\d+)/i);
@@ -50,12 +73,28 @@ function extractNumericOrder(src) {
   const nums = src.match(/(\d+)/g);
   return nums ? Number(nums[nums.length - 1]) : -Infinity;
 }
-mediaItems.sort((a, b) => {
-  const ap = prioritySet.has(a.src) ? 1 : 0;
-  const bp = prioritySet.has(b.src) ? 1 : 0;
-  if (ap !== bp) return bp - ap; // prioritize items in NEW_MEDIA_FIRST
-  return extractNumericOrder(b.src) - extractNumericOrder(a.src);
+const baseItems = mediaItems.filter(item => !prioritySet.has(item.src));
+const newItems = mediaItems.filter(item => prioritySet.has(item.src));
+
+// Sort base items (existing gallery) by inferred recency descending for a pleasant order
+baseItems.sort((a, b) => (extractNumericOrder(b.src) - extractNumericOrder(a.src)) || a.src.localeCompare(b.src));
+
+// Randomly generate unique insertion positions to scatter new items among base
+function generateUniquePositions(count, max) {
+  const set = new Set();
+  while (set.size < Math.min(count, max + 1)) {
+    set.add(Math.floor(Math.random() * (max + 1)));
+  }
+  return Array.from(set).sort((a, b) => a - b);
+}
+
+const positions = generateUniquePositions(newItems.length, baseItems.length);
+const mixed = [...baseItems];
+positions.forEach((pos, idx) => {
+  mixed.splice(pos + idx, 0, newItems[idx]);
 });
+
+mediaItems = mixed;
 
 /* Render gallery with skeletons, IntersectionObserver lazy load, and fade-in */
 const grid = select('#gallery-grid');
