@@ -90,7 +90,7 @@ body {
 /* Sections */
 .section { padding: 72px 0; }
 .section-title { font-family: "Playfair Display", serif; font-weight: 700; font-size: clamp(28px, 5vw, 40px); margin: 0 0 10px; }
-.section-subtitle { color: var(--muted); margin: 0 0 24px; }
+.section-subtitle { color: var(--muted); margin: 0 0 24px; text-align: center; }
 
 /* Eulogy */
 .eulogy .prose { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-lg); padding: 28px; line-height: 1.8; box-shadow: var(--shadow); }
